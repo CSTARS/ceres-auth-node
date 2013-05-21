@@ -1,0 +1,15 @@
+{
+  "name": "ceres-auth-server",
+  "version": "0.0.1",
+  "author": "Justin Merz <jrmerz@gmail.com>",
+  "description": "centeral authentication server for CERES apps",
+  "dependencies" : {
+    "express"  : "*",
+    "request"  : "*",
+    "passport" : "*",
+    "passport-google" : "*",
+    "passport-local" : "*",
+    "passport-facebook" : "*",
+    "passport-twitter" : "*"
+  }
+}
