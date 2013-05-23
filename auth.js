@@ -83,6 +83,7 @@ function getCentralAuthUser(user, done) {
 	var url = authServerUrl+"/rest/getUser?app="+appName+"&username="+user.email+"&token="+token;
 	if( user.password ) url += "&password="+user.password;
 	
+	console.log(user);
 	
 	request({url:url,json:true}, function (error, response, body) {
 		if( error ) console.log(error);
@@ -94,7 +95,9 @@ function getCentralAuthUser(user, done) {
 			
 			done(null, body);
 	  } else {
-		  done({error:true});
+		  
+		  console.log( response );
+		  done("general error");
 	  }
     });
 }
