@@ -15,7 +15,7 @@ exports.init = function(express, passport, config) {
 	authServerUrl = config.auth.centralAuthServer;
 	appName = config.auth.appName;
 	rootUrl = "http://"+config.server.host;
-	if( config.server.port && config.server.port != "80" ) rootUrl += ":"+config.server.port;
+	if( config.server.remoteport && config.server.remoteport != "80" ) rootUrl += ":"+config.server.remoteport;
 	
 	
 	passport.serializeUser(function(user, done) {
