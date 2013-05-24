@@ -3,6 +3,7 @@ var token = "";
 var authServerUrl = "";
 var rootUrl = "";
 var appName = "";
+var redirectPage = "";
 
 var GoogleStrategy = require('passport-google').Strategy;
 var FacebookStrategy = require('passport-facebook').Strategy;
@@ -14,6 +15,7 @@ exports.init = function(express, passport, config) {
 	token = config.auth.token;
 	authServerUrl = config.auth.centralAuthServer;
 	appName = config.auth.appName;
+	redirectPage = config.auth.loginRedirectPage ? config.auth.loginRedirectPage : "";
 	rootUrl = "http://"+config.server.host;
 	if( config.server.remoteport && config.server.remoteport != "80" ) rootUrl += ":"+config.server.remoteport;
 	
@@ -66,7 +68,6 @@ exports.init = function(express, passport, config) {
 //require login for admins
 function requireLogin(req, res, next) {
 	if ( req.user ) {
-		console.log(req.user);
 		if( req.user.roles && (req.user.roles.indexOf("admin") > -1) ) {
 			next(); // allow the next route to run
 		} else {
@@ -83,20 +84,15 @@ function getCentralAuthUser(user, done) {
 	var url = authServerUrl+"/rest/getUser?app="+appName+"&username="+user.email+"&token="+token;
 	if( user.password ) url += "&password="+user.password;
 	
-	console.log(user);
-	
 	request({url:url,json:true}, function (error, response, body) {
 		if( error ) console.log(error);
 		//else console.log(response);
 		
 	  if (!error && response.statusCode == 200 && !body.error) {
-		  	console.log(body);
 		  	users[user.email] = body;
 			
 			done(null, body);
 	  } else {
-		  
-		  console.log( response );
 		  done("general error");
 	  }
     });
@@ -115,7 +111,7 @@ function _setupCeresAuth(express, passport) {
 	  }
 	));
 	
-	express.post('/auth/ceres', passport.authenticate('local', { successRedirect: '/',
+	express.post('/auth/ceres', passport.authenticate('local', { successRedirect: '/'+redirectPage,
         failureRedirect: '/login' }));
 }
 
@@ -141,7 +137,7 @@ function _setupTwitterAuth(express, passport, config) {
 	
 	express.get('/auth/twitter', passport.authenticate('twitter'));
 
-	express.get('/auth/twitter/callback', passport.authenticate('twitter', { successRedirect: '/',
+	express.get('/auth/twitter/callback', passport.authenticate('twitter', { successRedirect: '/'+redirectPage,
 	                                     	failureRedirect: '/login' }));
 }
 
@@ -167,7 +163,7 @@ function _setupFacebookAuth(express, passport, config) {
 	
 	express.get('/auth/facebook', passport.authenticate('facebook'));
 
-	express.get('/auth/facebook/callback', passport.authenticate('facebook', { successRedirect: '/',
+	express.get('/auth/facebook/callback', passport.authenticate('facebook', { successRedirect: '/'+redirectPage,
 	                                      failureRedirect: '/login.html' }));
 }
 
@@ -175,7 +171,7 @@ function _setupGoogleAuth(express, passport) {
 	// setup google auth
 	passport.use(new GoogleStrategy({
 	    returnURL: rootUrl+'/auth/google/return',
-	    realm: rootUrl+"/"
+	    realm: rootUrl
 	  },
 	  function(identifier, profile, done) {
 		
@@ -194,7 +190,7 @@ function _setupGoogleAuth(express, passport) {
 	express.get('/auth/google', passport.authenticate('google'));
 	
 	express.get('/auth/google/return',  
-			passport.authenticate('google', { successRedirect: '/',
+			passport.authenticate('google', { successRedirect: '/'+redirectPage,
 			                       					 failureRedirect: '/login.html' }));
 }
 
@@ -203,29 +199,8 @@ function _loginCeresUser(username, password, callback) {
 				"&username="+username+"&password="+password, callback);
 }
 
-/*function _loginOauthUser(username, callback) {
-	request(authServerUrl+"/rest/getOauthUser?app="+appName+"&token="+token+
-				"&username="+username, callback);
-}*/
-
 function _createCeresUser(username, password, callback) {
 	// query app engine to verify cookie
 	request(authServerUrl+"/rest/addCeresUser?app="+appName+"&token="+token+
 				"&username="+username+"&password="+password, callback);
 }
-
-/*function request(url, callback) {
-	var json = "";
-	http.get(url, 
-		function(res) {
-			res.on('data', function(chunk){
-				json += chunk;
-			});
-			res.on('end', function(){
-				json = JSON.parse(json);
-				callback(null, json);
-			});
-	}).on('error', function(e) {
-		callback(e);
-	});
-}*/
