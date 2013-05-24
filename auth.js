@@ -93,7 +93,7 @@ function getCentralAuthUser(user, done) {
 			
 			done(null, body);
 	  } else {
-		  done("general error");
+		  done("access denied for: "+user.email);
 	  }
     });
 }
