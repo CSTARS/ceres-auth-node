@@ -11,14 +11,13 @@ var TwitterStrategy = require('passport-twitter').Strategy;
 var CeresStrategy = require('passport-local').Strategy;
 var request = require('request');
 
-exports.init = function(express, passport, config) {
+exports.init = function(express, passport, config) {    
 	token = config.auth.token;
 	authServerUrl = config.auth.centralAuthServer;
 	appName = config.auth.appName;
 	redirectPage = config.auth.loginRedirectPage ? config.auth.loginRedirectPage : "";
 	rootUrl = "http://"+config.server.host;
 	if( config.server.remoteport && config.server.remoteport != "80" ) rootUrl += ":"+config.server.remoteport;
-	
 	
 	passport.serializeUser(function(user, done) {
 		  done(null, user.username);
@@ -29,55 +28,58 @@ exports.init = function(express, passport, config) {
 	  done({error:true,message:"not logged in"})
 	});
 	
-	express.get('/rest/isLoggedIn', function(req, res){
-		if( req.user ) {
-			res.send({
-				status : true,
-				user   : req.user
-			})
-			return;
-		}
-		
-		res.send({status:false});
-	});
-	
-	express.post('/rest/createAccount', function(req, res){
-		
-		var email = req.query.username;
-		var password = req.query.password;
+	express.use(requireLogin);
+}
 
-		_createCeresUser(username, password, function(err, resp){
-			if( err ) return res.send(err);
-			res.send(resp);
-		});
-	});
-		
-	_setupCeresAuth(express, passport);
-	_setupGoogleAuth(express, passport);
-	if( config.auth.twitter ) _setupFacebookAuth(express, passport, config);
-	if( config.auth.facebook ) _setupTwitterAuth(express, passport, config);
-	
-	// Automatically apply the `requireLogin` middleware to all
-	// routes starting with `/admin`
-	express.all("/admin.html", requireLogin, function(req, res, next) {
-	  next(); // if the middleware allowed us to get here,
-	          // just move on to the next route handler
-	});
+exports.setEndpoints = function(express, passport, config) {
+    express.get('/rest/isLoggedIn', function(req, res){
+        if( req.user ) {
+            res.send({
+                status : true,
+                user   : req.user
+            })
+            return;
+        }
+        
+        res.send({status:false});
+    });
+
+    express.post('/rest/createAccount', function(req, res){
+        
+        var email = req.query.username;
+        var password = req.query.password;
+
+        _createCeresUser(username, password, function(err, resp){
+            if( err ) return res.send(err);
+            res.send(resp);
+        });
+    });
+    
+    _setupCeresAuth(express, passport);
+    _setupGoogleAuth(express, passport);
+    if( config.auth.twitter ) _setupFacebookAuth(express, passport, config);
+    if( config.auth.facebook ) _setupTwitterAuth(express, passport, config);
 }
 
 //require login for admins
 function requireLogin(req, res, next) {
-	if ( req.user ) {
-		if( req.user.roles && (req.user.roles.indexOf("admin") > -1) ) {
-			next(); // allow the next route to run
-		} else {
-			res.send(401);
-		}
-	} else {
-		// require the user to log in
-		res.redirect("/login.html"); // or render a form, etc.
-	}
+    if( req.path != "/admin.html" && !req.path.match(/\/rest\/admin.*/) ) {
+        next();
+        return;
+    }
+    
+    if ( req.user ) {
+        if( req.user.roles && (req.user.roles.indexOf("admin") > -1) ) {
+            next(); // allow the next route to run
+        } else {
+            res.send(401);
+        }
+    } else {
+        // require the user to log in
+        res.redirect("/login.html"); // or render a form, etc.
+    }
 }
+
 
 //access auth server and see if user has account
 function getCentralAuthUser(user, done) {
